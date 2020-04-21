@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using Microsoft.VisualBasic.CompilerServices;
+using System.Linq;
 using System.Diagnostics;
 using System;
 using Utils;
@@ -18,11 +19,10 @@ namespace freeze_pop_v2
 
         static void Main(string[] args)
         {
-            getProcessList();
+            displayProcessList();
 
             while (RUN_MAIN_LOOP)
             {
-
                 //  Get the process id from the user
                 bool validEntry = false;
                 while (!validEntry)
@@ -52,17 +52,17 @@ namespace freeze_pop_v2
                 //  Here we can assume we have a valid process handle
                 Console.WriteLine("Process valid -  attempting to hook");
 
+                //  Hook the process
                 targetProcessPtr = Utils.Pinvoke.OpenProcess(Utils.Pinvoke.ProcessAccessFlags.All, false, 1);
 
+                // Now for mem scans/pointer derefs here
 
+                // Die for now
                 RUN_MAIN_LOOP = false;
             }
-
-            Console.WriteLine("Bye");
-
         }
 
-        static void getProcessList()
+        static void displayProcessList()
         {
             Console.WriteLine("==== Process List ====");
             Process.GetProcesses().ToList().ForEach(process =>
