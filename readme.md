@@ -44,19 +44,3 @@ dotnet build
 
 dotnet run
 ```
-
-# Mac
-
-- Install dotnet core
-
-https://docs.microsoft.com/en-us/dotnet/core/install/dependencies?pivots=os-macos&tabs=netcore31
-
-- `sudo ln -s /usr/local/share/dotnet/dotnet /usr/local/bin/`
-
-- `dotnet --version` <--- check if `dotnet` command works
-
-- Now should be able to build/run
-
-#### Helper Resources
-
-https://stackoverflow.com/questions/53030531/dotnet-command-not-found-in-mac

@@ -31,6 +31,14 @@ namespace Utils
         [DllImport("kernel32.dll")]
         public static extern Int32 CloseHandle(IntPtr hProcess);
 
+        [DllImport("kernel32.dll")]
+        public static extern uint GetLastError();
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        public static extern int MessageBox(IntPtr hWnd, string lpText, string lpCaption, uint uType);
+        // Utils.Pinvoke.MessageBox(IntPtr.Zero, "Command-line message box", "Attention!", 0);
+
+
         //===============================================
         //                  FLAGS
         //===============================================
