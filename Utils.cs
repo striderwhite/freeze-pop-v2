@@ -4,6 +4,26 @@ namespace Utils
     using System.Runtime.InteropServices;
     using System;
 
+    public class Vec3
+    {
+        public float x = 0;
+        public float y = 0;
+        public float z = 0;
+    }
+
+
+    public class Offsets
+    {
+        public static int HEALTH_BASE_OFFSET = 0x0095B184; //offset from module bfvietnam.exe
+        public static int V_VECTOR_BASE_OFFSET = 0x0097D01C; //offset from module bfvietnam.exe
+
+        public static int[] HEALTH_OFFSETS = new int[] { 0x170, 0xDC, 0x0, 0x10, 0x38 };
+        public static int[] X_VECTOR_OFFSETS = new int[] { 0x54, 0xA4, 0xC4 };
+
+        //player y seems to be 0.60000038 below camera 6 coords
+
+    }
+
     public class Constants
     {
         //===============================================
@@ -27,6 +47,9 @@ namespace Utils
 
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern bool WriteProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, byte[] lpBuffer, uint nSize, out int lpNumberOfBytesWritten);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool ReadProcessMemory(IntPtr hProcess, long lpBaseAddress, [In, Out] byte[] lpBuffer, ulong dwSize, out IntPtr lpNumberOfBytesRead);
 
         [DllImport("kernel32.dll")]
         public static extern Int32 CloseHandle(IntPtr hProcess);

@@ -9,3 +9,4 @@ C:\Users\STRIDER\Desktop\projects\C#\freeze-pop-v2\obj\Debug\netcoreapp2.1\freez
 C:\Users\STRIDER\Desktop\projects\C#\freeze-pop-v2\obj\Debug\netcoreapp2.1\freeze-pop-v2.AssemblyInfo.cs
 C:\Users\STRIDER\Desktop\projects\C#\freeze-pop-v2\obj\Debug\netcoreapp2.1\freeze-pop-v2.dll
 C:\Users\STRIDER\Desktop\projects\C#\freeze-pop-v2\obj\Debug\netcoreapp2.1\freeze-pop-v2.pdb
+C:\Users\STRIDER\Desktop\projects\C#\freeze-pop-v2\obj\Debug\netcoreapp2.1\freeze-pop-v2.genruntimeconfig.cache

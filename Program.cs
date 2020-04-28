@@ -1,4 +1,6 @@
-﻿using System.Buffers.Binary;
+﻿using System.Threading;
+using System.Runtime.InteropServices;
+using System.Buffers.Binary;
 using System.Text;
 using Microsoft.VisualBasic.CompilerServices;
 using System.Linq;
@@ -11,7 +13,7 @@ namespace freeze_pop_v2
 {
     class Program
     {
-        static bool RUN_MAIN_LOOP = true;
+        static bool RUN_HACK = true;
         static bool ATTACHED = false;  // Determines if we are activly hooking 
         static List<Process> listOfProcesses = new List<Process>(); // Snapshot of processes
         static Process targetProcess = null;   //  Process targeted for hooking
@@ -25,74 +27,82 @@ namespace freeze_pop_v2
         {
             //displayProcessList();
 
-            while (RUN_MAIN_LOOP)
-            {
-                //  Get the process id from the user
-                /*  bool validEntry = false;
-                 while (!validEntry)
+            //  Get the process id from the user
+            /*  bool validEntry = false;
+             while (!validEntry)
+             {
+                 Console.Write("Enter Target Process ID: ");
+                 userInput = Console.ReadLine();
+
+                 if (int.TryParse(userInput, out targetProcessId))
                  {
-                     Console.Write("Enter Target Process ID: ");
-                     userInput = Console.ReadLine();
-
-                     if (int.TryParse(userInput, out targetProcessId))
+                     try
                      {
-                         try
-                         {
-                             targetProcess = Process.GetProcessById(targetProcessId);
-                             validEntry = true;
-                         }
-                         catch (Exception e)
-                         {
-                             Console.WriteLine(e.Message.ToString());
-                         }
-
+                         targetProcess = Process.GetProcessById(targetProcessId);
+                         validEntry = true;
                      }
-                     else
+                     catch (Exception e)
                      {
-                         Console.WriteLine("Invalid Process ID");
+                         Console.WriteLine(e.Message.ToString());
                      }
-                 } */
 
-                targetProcess = Process.GetProcessesByName("BfVietnam")[0];
+                 }
+                 else
+                 {
+                     Console.WriteLine("Invalid Process ID");
+                 }
+             } */
 
-                //  Here we can assume we have a valid process handle
+            //  Here we can assume we have a valid process handle
+            targetProcess = Process.GetProcessesByName("BfVietnam")[0];
+
+
+            //  Hook the process
+            targetProcessPtr = Utils.Pinvoke.OpenProcess(Utils.Pinvoke.ProcessAccessFlags.VMOperation | Utils.Pinvoke.ProcessAccessFlags.VMWrite | Utils.Pinvoke.ProcessAccessFlags.VMRead, false, targetProcess.Id);
+            if (targetProcessPtr.ToString() == "0")
+            {
+                Console.WriteLine("Failed to hook. Code: " + Utils.Pinvoke.GetLastError().ToString());
+            }
+            else
+            {
+                Console.WriteLine("Attached");
+                ATTACHED = true;
+            }
+
+            if (ATTACHED)
+            {
+                //  List all the running modules in the process
                 Console.WriteLine("\nLoaded Modules In " + targetProcess.ProcessName + '\n');
-
-                //  Hook the process
-                targetProcessPtr = Utils.Pinvoke.OpenProcess(Utils.Pinvoke.ProcessAccessFlags.VMOperation | Utils.Pinvoke.ProcessAccessFlags.VMWrite | Utils.Pinvoke.ProcessAccessFlags.VMRead, false, targetProcess.Id);
-                if (targetProcessPtr.ToString() == "0")
+                foreach (ProcessModule module in targetProcess.Modules)
                 {
-                    Console.WriteLine("Failed to hook. Code: " + Utils.Pinvoke.GetLastError().ToString());
-                }
-                else
-                {
-                    Console.WriteLine("Attached");
-                    ATTACHED = true;
-                }
-
-                if (ATTACHED)
-                {
-                    // Attempt to get the health address
-                    //  List all the running modules in the process
-                    foreach (ProcessModule module in targetProcess.Modules)
+                    Console.WriteLine(string.Format("Module:\t {0} - {1}", module.FileName, module.ModuleName));
+                    if (module.ModuleName == "BfVietnam.exe")
                     {
-                        Console.WriteLine(string.Format("Module:\t {0} - {1}", module.FileName, module.ModuleName));
-                        if (module.ModuleName == "BfVietnam.exe")
-                        {
-                            baseProcessModule = module;
-                        }
+                        baseProcessModule = module;
                     }
-
-                    IntPtr gameBaseAddress = baseProcessModule.EntryPointAddress;
-                    IntPtr healthAddress = GetPointerWithOffsets(gameBaseAddress, new int[] { 0x0097D01C, 0x54, 0xA4, 0xDC, 0x10, 0x38 });
-
-                    WriteMem(targetProcessPtr, healthAddress, 3333f);
-                    //WriteMemFloat(targetProcessPtr, new IntPtr(0x2A0485C8), 34237f).ToString();
                 }
 
+                IntPtr gameBaseAddress = baseProcessModule.BaseAddress;
+;
+                Utils.Vec3 playerVec = new Utils.Vec3();
+                Random r = new Random();
 
-                // Die for now
-                RUN_MAIN_LOOP = false;
+                while (RUN_HACK)
+                {
+                    IntPtr ptrVecPosition = GetPointerWithOffsets(targetProcessPtr, IntPtr.Add(gameBaseAddress, Utils.Offsets.V_VECTOR_BASE_OFFSET), Utils.Offsets.X_VECTOR_OFFSETS);
+
+                    playerVec.x = readMemToFloat(targetProcessPtr, ptrVecPosition, 4);
+                    playerVec.y = readMemToFloat(targetProcessPtr, IntPtr.Add(ptrVecPosition, 4), 4);
+                    playerVec.z = readMemToFloat(targetProcessPtr, IntPtr.Add(ptrVecPosition, 8), 4);
+                    Console.WriteLine("before \tx: " + playerVec.x + " y: " + playerVec.y + " z: " + playerVec.z);
+
+                    WriteMem(targetProcessPtr, ptrVecPosition, Convert.ToSingle(r.Next(250, 2500)));
+                    WriteMem(targetProcessPtr, IntPtr.Add(ptrVecPosition, 4), Convert.ToSingle(r.Next(250, 255)));
+                    WriteMem(targetProcessPtr, IntPtr.Add(ptrVecPosition, 8), Convert.ToSingle(r.Next(250, 2500)));
+                    Console.WriteLine("after \tx: " + playerVec.x + " y: " + playerVec.y + " z: " + playerVec.z);
+                    Thread.Sleep(1000);
+                }
+
             }
         }
 
@@ -122,7 +132,7 @@ namespace freeze_pop_v2
             }
             else
             {
-                Console.WriteLine("\n" + bytesWritten.ToString() + " bytes written");
+                Console.WriteLine("\nWrote " + val.ToString() + " to " + IntPtrToHex(address) + " (" + bytesWritten.ToString() + " bytes)");
             }
         }
 
@@ -131,25 +141,43 @@ namespace freeze_pop_v2
             int bytesWritten = 0;
             byte[] buffer = BitConverter.GetBytes(val);
 
-            bool result = Utils.Pinvoke.WriteProcessMemory(hProc, new IntPtr(0x2A0485C8), buffer, (uint)buffer.Length, out bytesWritten);
+            bool result = Utils.Pinvoke.WriteProcessMemory(hProc, address, buffer, (uint)buffer.Length, out bytesWritten);
             if (!result)
             {
                 Console.WriteLine("Failed to write into memory. Code: " + Utils.Pinvoke.GetLastError().ToString());
             }
             else
             {
-                Console.WriteLine("\nWrote " + val.ToString() + " as float (" + bytesWritten.ToString() + " bytes)");
+                Console.WriteLine("\nWrote " + val.ToString() + " as float to " + IntPtrToHex(address) + " (" + bytesWritten.ToString() + " bytes)");
             }
         }
 
-        public static IntPtr GetPointerWithOffsets(IntPtr basePointer, int[] offsets)
+        public static IntPtr GetPointerWithOffsets(IntPtr hProc, IntPtr basePointer, int[] offsets)
         {
+            // https://guidedhacking.com/threads/c-multilevel-pointer-function-c-version-of-finddmaaddy.11874/
             IntPtr resultingPointer = basePointer;
+            var buffer = new byte[IntPtr.Size];
+            //Console.WriteLine("Starting with address " + basePointer.ToInt64().ToString("X8"));
             for (int i = 0; i < offsets.Length; i++)
             {
-                resultingPointer = IntPtr.Add(resultingPointer, offsets[i]);
+                Utils.Pinvoke.ReadProcessMemory(hProc, resultingPointer.ToInt64(), buffer, (ulong)buffer.Length, out var read);
+                //Console.WriteLine("Value Of Pointed Address  " + resultingPointer.ToInt64().ToString("X8"));
+                resultingPointer = IntPtr.Add(new IntPtr(BitConverter.ToInt32(buffer, 0)), offsets[i]);
+                //Console.WriteLine("New Pointed Address " + resultingPointer.ToInt64().ToString("X8"));
             }
             return resultingPointer;
+        }
+
+        public static float readMemToFloat(IntPtr hproc, IntPtr basePointer, int size)
+        {
+            var buffer = new byte[size];
+            Utils.Pinvoke.ReadProcessMemory(hproc, basePointer.ToInt64(), buffer, (ulong)buffer.Length, out var read);
+            return BitConverter.ToSingle(buffer);
+        }
+
+        public static String IntPtrToHex(IntPtr num)
+        {
+            return string.Format("0x{0:X8}", num.ToInt64());
         }
     }
 }
